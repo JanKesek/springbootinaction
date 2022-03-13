@@ -1,27 +1,26 @@
 package springbootinaction.taco;
 
-import org.springframework.amqp.core.AmqpAdmin;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.connection.RabbitConnectionFactoryBean;
-import org.springframework.amqp.rabbit.connection.RabbitUtils;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.MessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
-import org.springframework.boot.autoconfigure.amqp.RabbitTemplateConfigurer;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import springbootinaction.taco.jpa.Ingredient;
 import springbootinaction.taco.jpa.Taco;
 import springbootinaction.taco.jpa.TacoOrder;
@@ -30,15 +29,19 @@ import springbootinaction.taco.repos.TacoOrderRepository;
 import springbootinaction.taco.repos.TacoRepository;
 import springbootinaction.taco.queue.*;
 import javax.sql.DataSource;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Properties;
 
 @SpringBootApplication(exclude = HibernateJpaAutoConfiguration.class)
 @EnableJpaRepositories("springbootinaction.taco.repos")
+@EnableScheduling
 //@ComponentScan
 public class TacoApplication {
+    public final static String RABBIT_QUEUE_NAME = "tacocloud.order";
+    public final static String RABBIT_QUEUE_INGREDIENTS = "tacocloud.ingredient";
+    public final static String RABBIT_EXCHANGE_NAME = "amq.topic";
+
 
     public static void main(String[] args) {
         SpringApplication.run(TacoApplication.class, args);
@@ -66,8 +69,56 @@ public class TacoApplication {
     public RabbitService rabbitService() {
         ConnectionFactory connectionFactory = new CachingConnectionFactory("localhost");
         AmqpAdmin admin = new RabbitAdmin(connectionFactory);
-        admin.declareQueue(new Queue("tacocloud.order"));
-        return new RabbitService(new RabbitTemplate(connectionFactory));
+        TopicExchange topicExchange = topicExchange();
+        Queue queue = new Queue(RABBIT_QUEUE_NAME);
+        Queue queueIngredients = new Queue(RABBIT_QUEUE_INGREDIENTS);
+        admin.declareQueue(queue);
+        admin.declareQueue(queueIngredients);
+        admin.declareExchange(topicExchange);
+        admin.declareBinding(binding(topicExchange, queue, RABBIT_QUEUE_NAME));
+        admin.declareBinding(binding(topicExchange, queueIngredients, RABBIT_QUEUE_INGREDIENTS));
+
+        return new RabbitService(rabbitTemplate(connectionFactory), messageConverter());
+    }
+
+    @Bean
+    MessageListenerAdapter listenerAdapter(RabbitReceiver receiver) {
+        MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(receiver,"receiveOrder");
+        messageListenerAdapter.setMessageConverter(messageConverter());
+        messageListenerAdapter.setResponseExchange(RABBIT_EXCHANGE_NAME);
+        return messageListenerAdapter;
+    }
+
+    @Bean
+    MessageConverter messageConverter() {
+        return new Jackson2JsonMessageConverter();
+    }
+    @Bean
+    SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, MessageListenerAdapter listenerAdapter) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.setupMessageListener(listenerAdapter);
+        container.setQueueNames(RABBIT_QUEUE_NAME, RABBIT_QUEUE_INGREDIENTS);
+        container.setDefaultRequeueRejected(false);
+        return container;
+    }
+
+    private TopicExchange topicExchange() {
+        return new TopicExchange(RABBIT_EXCHANGE_NAME);
+    }
+
+    private Binding binding(TopicExchange exchange, Queue queue, String queueName) {
+        return BindingBuilder.bind(queue).to(exchange).with(queueName);
+    }
+
+    private RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+        if(connectionFactory == null) {
+            connectionFactory = new CachingConnectionFactory("localhost");
+        }
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setDefaultReceiveQueue(RABBIT_QUEUE_NAME);
+        rabbitTemplate.setExchange(RABBIT_EXCHANGE_NAME);
+        return rabbitTemplate;
     }
 
     private DataSource dataSource() {
