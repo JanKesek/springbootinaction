@@ -109,6 +109,38 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
+
+
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-core</artifactId>
+            <version>3.5.0-stable</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.jmonkeyengine/jme3-desktop -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-desktop</artifactId>
+            <version>3.5.0-stable</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.jmonkeyengine/jme3-lwjgl -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-lwjgl</artifactId>
+            <version>3.5.0-stable</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.jmonkeyengine/jme3-lwjgl -->
+        <dependency>
+            <groupId>org.jmonkeyengine</groupId>
+            <artifactId>jme3-jbullet</artifactId>
+            <version>3.5.0-stable</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.rabbitmq/amqp-client -->
+        <dependency>
+            <groupId>com.rabbitmq</groupId>
+            <artifactId>amqp-client</artifactId>
+            <version>5.14.2</version>
+        </dependency>
+
     </dependencies>
 
     <build>

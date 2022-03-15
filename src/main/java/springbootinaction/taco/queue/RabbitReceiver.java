@@ -47,8 +47,8 @@ public class RabbitReceiver {
         latch.countDown();
         return tacoOrder;
     }
-    @RabbitListener(queues = {TacoApplication.RABBIT_QUEUE_INGREDIENTS})
-    public List<String> receiveOrder(List<String> message) throws InterruptedException {
+    //@RabbitListener(queues = {TacoApplication.RABBIT_QUEUE_INGREDIENTS})
+    public void receiveOrder(List<String> message) throws InterruptedException {
         //Message message = rabbitTemplate1.receive("tacocloud.order");
         /*while (message == null) {
             Thread.sleep(1000L);
@@ -56,7 +56,7 @@ public class RabbitReceiver {
         }*/
         //TacoOrder tacoOrder = (TacoOrder) messageConverter.fromMessage(message);
         log.warning("RECEIVED MESSAGE " + message);
-        return message;
+        //return message;
     }
 
 

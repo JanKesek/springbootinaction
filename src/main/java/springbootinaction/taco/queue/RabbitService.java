@@ -43,7 +43,7 @@ public class RabbitService {
         //rabbitTemplate.convertAndSend(tacoOrder);
     }
 
-    @Scheduled(fixedDelay = 5000, initialDelay = 5000)
+    @Scheduled(fixedDelay = 15000, initialDelay = 5000)
     public void createIngredients() {
         MessageProperties messageProperties = new MessageProperties();
         List<String> ingredients = new ArrayList<>();

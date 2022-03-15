@@ -21,6 +21,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import springbootinaction.taco.game.RollingTheMonkey;
 import springbootinaction.taco.jpa.Ingredient;
 import springbootinaction.taco.jpa.Taco;
 import springbootinaction.taco.jpa.TacoOrder;
@@ -45,6 +46,8 @@ public class TacoApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(TacoApplication.class, args);
+        RollingTheMonkey rollingTheMonkey = new RollingTheMonkey();
+        rollingTheMonkey.start();
     }
 
 
@@ -98,7 +101,7 @@ public class TacoApplication {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.setupMessageListener(listenerAdapter);
-        container.setQueueNames(RABBIT_QUEUE_NAME, RABBIT_QUEUE_INGREDIENTS);
+        container.setQueueNames(RABBIT_QUEUE_NAME);
         container.setDefaultRequeueRejected(false);
         return container;
     }
